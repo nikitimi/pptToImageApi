@@ -1,0 +1,33 @@
+{
+  "name": "ppttoimageapi",
+  "version": "1.0.0",
+  "description": "This uses Third Party PPT to Image converter API to deliver specific page of PPT into a personal website",
+  "main": "index.js",
+  "scripts": {
+    "start": "npx tsc && node ./dist/index.js",
+    "prod": "rm -rf ./dist && npx tsc && node ./dist/index.js"
+  },
+  "keywords": [
+    "ppt",
+    "image",
+    "converter"
+  ],
+  "author": "nikitimi",
+  "license": "MIT",
+  "dependencies": {
+    "@idrsolutions/idrcloudclient": "^4.4.0",
+    "app-root-path": "^3.1.0",
+    "axios": "^1.6.8",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1",
+    "pdf2pic": "^3.1.1"
+  },
+  "devDependencies": {
+    "@types/axios": "^0.14.0",
+    "@types/dotenv": "^8.2.0",
+    "@types/express": "^4.17.21",
+    "@types/multer": "^1.4.11",
+    "typescript": "^5.4.3"
+  }
+}

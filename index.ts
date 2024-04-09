@@ -6,6 +6,7 @@ import multer from "multer"
 import axios from "axios"
 import approot from "app-root-path"
 import { fromPath } from "pdf2pic"
+import shelljs from "shelljs"
 
 const upload = multer({ dest: "./uploads/" })
 dotenv.config()
@@ -17,6 +18,8 @@ app.get("/", (req, res) => {
 })
 
 app.post("/uploadPpt", upload.single("uploaded_file"), async (req, res) => {
+  shelljs.rm("--", `${approot}/images/*`)
+
   const filename = "result.pdf"
   const formData = new FormData()
   formData.append(
@@ -43,25 +46,31 @@ app.post("/uploadPpt", upload.single("uploaded_file"), async (req, res) => {
       }
     )
 
-    await response.data.pipe(fs.createWriteStream(filename))
-    const filepath = `${approot}/${filename}`
-    const options = {
-      density: 100,
-      saveFilename: "untitled",
-      savePath: "./images",
-      format: "png",
-      width: 600,
-      height: 600,
-    }
-    setTimeout(() => console.log("times up!"), 1000)
-    const convert = fromPath(filepath, options)
-    const pageToConvertAsImage = 1
+    const pipeStream = response.data.pipe(fs.createWriteStream(filename))
+    pipeStream.on("finish", async () => {
+      const filepath = `${approot}/${filename}`
+      const options = {
+        density: 100,
+        saveFilename: "untitled",
+        savePath: "./images",
+        format: "png",
+        width: 1920,
+        height: 1080,
+      }
+      const convert = fromPath(filepath, options)
+      const result = await convert(req.body.page, {
+        responseType: "image",
+      })
+      shelljs.rm("--", `${approot}/uploads/*`)
+      shelljs.rm("--", `${approot}/result.pdf`)
 
-    const result = await convert(pageToConvertAsImage, {
-      responseType: "image",
+      const pngResultPath = `${approot}/images/${result.name}`
+      res.writeHead(200, {
+        "Content-Type": "image/png",
+        "Content-Length": fs.statSync(pngResultPath).size,
+      })
+      fs.createReadStream(pngResultPath).pipe(res)
     })
-    console.log({ result })
-    res.status(200).send(filepath)
   } catch (err) {
     console.log(err)
     res.status(400).send("error")

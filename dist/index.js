@@ -21,6 +21,7 @@ const multer_1 = __importDefault(require("multer"));
 const axios_1 = __importDefault(require("axios"));
 const app_root_path_1 = __importDefault(require("app-root-path"));
 const pdf2pic_1 = require("pdf2pic");
+const shelljs_1 = __importDefault(require("shelljs"));
 const upload = (0, multer_1.default)({ dest: "./uploads/" });
 dotenv_1.default.config();
 const app = (0, express_1.default)();
@@ -29,6 +30,7 @@ app.get("/", (req, res) => {
     res.status(200).send("hello");
 });
 app.post("/uploadPpt", upload.single("uploaded_file"), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    shelljs_1.default.rm("--", `${app_root_path_1.default}/images/*`);
     const filename = "result.pdf";
     const formData = new form_data_1.default();
     formData.append("instructions", JSON.stringify({
@@ -48,23 +50,30 @@ app.post("/uploadPpt", upload.single("uploaded_file"), (req, res) => __awaiter(v
             }),
             responseType: "stream",
         });
-        yield response.data.pipe(node_fs_1.default.createWriteStream(filename));
-        const filepath = `${app_root_path_1.default}/${filename}`;
-        const options = {
-            density: 100,
-            saveFilename: "untitled",
-            savePath: "./images",
-            format: "png",
-            width: 600,
-            height: 600,
-        };
-        setTimeout(() => console.log("times up!"), 1000);
-        const convert = (0, pdf2pic_1.fromPath)(filepath, options);
-        const pageToConvertAsImage = 1;
-        convert(pageToConvertAsImage, {
-            responseType: "image",
-        }).then((result) => console.log({ result }));
-        res.status(200).send(filepath);
+        const pipeStream = response.data.pipe(node_fs_1.default.createWriteStream(filename));
+        pipeStream.on("finish", () => __awaiter(void 0, void 0, void 0, function* () {
+            const filepath = `${app_root_path_1.default}/${filename}`;
+            const options = {
+                density: 100,
+                saveFilename: "untitled",
+                savePath: "./images",
+                format: "png",
+                width: 1920,
+                height: 1080,
+            };
+            const convert = (0, pdf2pic_1.fromPath)(filepath, options);
+            const result = yield convert(req.body.page, {
+                responseType: "image",
+            });
+            shelljs_1.default.rm("--", `${app_root_path_1.default}/uploads/*`);
+            shelljs_1.default.rm("--", `${app_root_path_1.default}/result.pdf`);
+            const pngResultPath = `${app_root_path_1.default}/images/${result.name}`;
+            res.writeHead(200, {
+                "Content-Type": "image/png",
+                "Content-Length": node_fs_1.default.statSync(pngResultPath).size,
+            });
+            node_fs_1.default.createReadStream(pngResultPath).pipe(res);
+        }));
     }
     catch (err) {
         console.log(err);

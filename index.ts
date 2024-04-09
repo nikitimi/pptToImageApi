@@ -22,7 +22,7 @@ app.post("/uploadPpt", upload.single("uploaded_file"), async (req, res) => {
     "Access-Control-Allow-Headers",
     "Origin, X-Requested-With, Content-Type, Accept, Authorization"
   )
-  shelljs.rm("--", `${approot}/images/*`)
+  // shelljs.rm("--", `${approot}/images/*`)
 
   const filename = "result.pdf"
   const pageNumber = req.body.page

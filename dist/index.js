@@ -83,11 +83,12 @@ app.post("/uploadPpt", upload.single("uploaded_file"), (req, res) => __awaiter(v
                 const webpStream = node_fs_1.default.createWriteStream(webpFilepath);
                 const pdfPipStream = webResult.data.pipe(webpStream);
                 pdfPipStream.on("finish", () => {
-                    res.writeHead(200, {
-                        "Content-Type": "image/png",
-                        "Content-Length": node_fs_1.default.statSync(webpFilepath).size,
-                    });
-                    node_fs_1.default.createReadStream(webpFilepath).pipe(res);
+                    // res.writeHead(200, {
+                    //   "Content-Type": "image/png",
+                    //   "Content-Length": fs.statSync(webpFilepath).size,
+                    // })
+                    // fs.createReadStream(webpFilepath).pipe(res)
+                    res.status(200).sendFile(webpFilepath);
                     shelljs_1.default.rm("--", `${app_root_path_1.default}/uploads/*`);
                     shelljs_1.default.rm("--", `${app_root_path_1.default}/result.pdf`);
                 });

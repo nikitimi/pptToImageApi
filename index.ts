@@ -60,7 +60,7 @@ app.post("/uploadPpt", upload.single("uploaded_file"), async (req, res) => {
           ],
           output: {
             type: "image",
-            format: "png",
+            format: "webp",
             pages: {
               start: parseInt(pageNumber, 10) - 1,
               end: parseInt(pageNumber, 10) - 1,
@@ -82,17 +82,13 @@ app.post("/uploadPpt", upload.single("uploaded_file"), async (req, res) => {
             responseType: "stream",
           }
         )
-        const webpFilename = "image.png"
+        const webpFilename = "image.webp"
         const webpFilepath = `${approot}/images/${webpFilename}`
         const webpStream = fs.createWriteStream(webpFilepath)
         const pdfPipStream = webResult.data.pipe(webpStream)
 
         pdfPipStream.on("finish", () => {
-          res.writeHead(200, {
-            "Content-Type": "image/png",
-            "Content-Length": fs.statSync(webpFilepath).size,
-          })
-          fs.createReadStream(webpFilepath).pipe(res)
+          res.status(200).sendFile(webpFilepath)
 
           shelljs.rm("--", `${approot}/uploads/*`)
           shelljs.rm("--", `${approot}/result.pdf`)

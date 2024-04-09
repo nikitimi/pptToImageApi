@@ -1,1 +1,1 @@
-- PPT converted using [https://api.pspdfkit.com/build](this api) into PDF, then converting the PDF to PNG using GraphicsImage
+- PPT converted using (https://api.pspdfkit.com/build)[this api] into PDF, then converting the PDF to PNG using GraphicsImage

@@ -17,6 +17,11 @@ app.get("/", (req, res) => {
 })
 
 app.post("/uploadPpt", upload.single("uploaded_file"), async (req, res) => {
+  res.header("Access-Control-Allow-Origin", "*")
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+  )
   shelljs.rm("--", `${approot}/images/*`)
 
   const filename = "result.pdf"

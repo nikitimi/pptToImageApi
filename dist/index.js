@@ -29,6 +29,8 @@ app.get("/", (req, res) => {
     res.status(200).send("hello");
 });
 app.post("/uploadPpt", upload.single("uploaded_file"), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
     shelljs_1.default.rm("--", `${app_root_path_1.default}/images/*`);
     const filename = "result.pdf";
     const pageNumber = req.body.page;
@@ -62,7 +64,7 @@ app.post("/uploadPpt", upload.single("uploaded_file"), (req, res) => __awaiter(v
                 ],
                 output: {
                     type: "image",
-                    format: "png",
+                    format: "webp",
                     pages: {
                         start: parseInt(pageNumber, 10) - 1,
                         end: parseInt(pageNumber, 10) - 1,
@@ -78,16 +80,11 @@ app.post("/uploadPpt", upload.single("uploaded_file"), (req, res) => __awaiter(v
                     }),
                     responseType: "stream",
                 });
-                const webpFilename = "image.png";
+                const webpFilename = "image.webp";
                 const webpFilepath = `${app_root_path_1.default}/images/${webpFilename}`;
                 const webpStream = node_fs_1.default.createWriteStream(webpFilepath);
                 const pdfPipStream = webResult.data.pipe(webpStream);
                 pdfPipStream.on("finish", () => {
-                    // res.writeHead(200, {
-                    //   "Content-Type": "image/png",
-                    //   "Content-Length": fs.statSync(webpFilepath).size,
-                    // })
-                    // fs.createReadStream(webpFilepath).pipe(res)
                     res.status(200).sendFile(webpFilepath);
                     shelljs_1.default.rm("--", `${app_root_path_1.default}/uploads/*`);
                     shelljs_1.default.rm("--", `${app_root_path_1.default}/result.pdf`);

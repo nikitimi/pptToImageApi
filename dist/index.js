@@ -20,7 +20,6 @@ const node_fs_1 = __importDefault(require("node:fs"));
 const multer_1 = __importDefault(require("multer"));
 const axios_1 = __importDefault(require("axios"));
 const app_root_path_1 = __importDefault(require("app-root-path"));
-const pdf2pic_1 = require("pdf2pic");
 const shelljs_1 = __importDefault(require("shelljs"));
 const upload = (0, multer_1.default)({ dest: "./uploads/" });
 dotenv_1.default.config();
@@ -32,6 +31,7 @@ app.get("/", (req, res) => {
 app.post("/uploadPpt", upload.single("uploaded_file"), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     shelljs_1.default.rm("--", `${app_root_path_1.default}/images/*`);
     const filename = "result.pdf";
+    const pageNumber = req.body.page;
     const formData = new form_data_1.default();
     formData.append("instructions", JSON.stringify({
         parts: [
@@ -52,27 +52,49 @@ app.post("/uploadPpt", upload.single("uploaded_file"), (req, res) => __awaiter(v
         });
         const pipeStream = response.data.pipe(node_fs_1.default.createWriteStream(filename));
         pipeStream.on("finish", () => __awaiter(void 0, void 0, void 0, function* () {
-            const filepath = `${app_root_path_1.default}/${filename}`;
-            const options = {
-                density: 100,
-                saveFilename: "untitled",
-                savePath: "./images",
-                format: "png",
-                width: 1920,
-                height: 1080,
-            };
-            const convert = (0, pdf2pic_1.fromPath)(filepath, options);
-            const result = yield convert(req.body.page, {
-                responseType: "image",
-            });
-            shelljs_1.default.rm("--", `${app_root_path_1.default}/uploads/*`);
-            shelljs_1.default.rm("--", `${app_root_path_1.default}/result.pdf`);
-            const pngResultPath = `${app_root_path_1.default}/images/${result.name}`;
-            res.writeHead(200, {
-                "Content-Type": "image/png",
-                "Content-Length": node_fs_1.default.statSync(pngResultPath).size,
-            });
-            node_fs_1.default.createReadStream(pngResultPath).pipe(res);
+            const pdfFilepath = `${app_root_path_1.default}/${filename}`;
+            const pdfToImageFData = new form_data_1.default();
+            pdfToImageFData.append("instructions", JSON.stringify({
+                parts: [
+                    {
+                        file: "document",
+                    },
+                ],
+                output: {
+                    type: "image",
+                    format: "png",
+                    pages: {
+                        start: parseInt(pageNumber, 10) - 1,
+                        end: parseInt(pageNumber, 10) - 1,
+                    },
+                    width: 1920,
+                },
+            }));
+            pdfToImageFData.append("document", node_fs_1.default.createReadStream(pdfFilepath));
+            try {
+                const webResult = yield axios_1.default.post("https://api.pspdfkit.com/build", pdfToImageFData, {
+                    headers: pdfToImageFData.getHeaders({
+                        Authorization: `Bearer ${process.env.LIVE_API_KEY}`,
+                    }),
+                    responseType: "stream",
+                });
+                const webpFilename = "image.png";
+                const webpFilepath = `${app_root_path_1.default}/images/${webpFilename}`;
+                const webpStream = node_fs_1.default.createWriteStream(webpFilepath);
+                const pdfPipStream = webResult.data.pipe(webpStream);
+                pdfPipStream.on("finish", () => {
+                    res.writeHead(200, {
+                        "Content-Type": "image/png",
+                        "Content-Length": node_fs_1.default.statSync(webpFilepath).size,
+                    });
+                    node_fs_1.default.createReadStream(webpFilepath).pipe(res);
+                    shelljs_1.default.rm("--", `${app_root_path_1.default}/uploads/*`);
+                    shelljs_1.default.rm("--", `${app_root_path_1.default}/result.pdf`);
+                });
+            }
+            catch (err) {
+                console.log(err);
+            }
         }));
     }
     catch (err) {

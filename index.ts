@@ -5,7 +5,6 @@ import fs from "node:fs"
 import multer from "multer"
 import axios from "axios"
 import approot from "app-root-path"
-import { fromPath } from "pdf2pic"
 import shelljs from "shelljs"
 
 const upload = multer({ dest: "./uploads/" })
@@ -21,6 +20,7 @@ app.post("/uploadPpt", upload.single("uploaded_file"), async (req, res) => {
   shelljs.rm("--", `${approot}/images/*`)
 
   const filename = "result.pdf"
+  const pageNumber = req.body.page
   const formData = new FormData()
   formData.append(
     "instructions",
@@ -48,28 +48,58 @@ app.post("/uploadPpt", upload.single("uploaded_file"), async (req, res) => {
 
     const pipeStream = response.data.pipe(fs.createWriteStream(filename))
     pipeStream.on("finish", async () => {
-      const filepath = `${approot}/${filename}`
-      const options = {
-        density: 100,
-        saveFilename: "untitled",
-        savePath: "./images",
-        format: "png",
-        width: 1920,
-        height: 1080,
-      }
-      const convert = fromPath(filepath, options)
-      const result = await convert(req.body.page, {
-        responseType: "image",
-      })
-      shelljs.rm("--", `${approot}/uploads/*`)
-      shelljs.rm("--", `${approot}/result.pdf`)
+      const pdfFilepath = `${approot}/${filename}`
+      const pdfToImageFData = new FormData()
+      pdfToImageFData.append(
+        "instructions",
+        JSON.stringify({
+          parts: [
+            {
+              file: "document",
+            },
+          ],
+          output: {
+            type: "image",
+            format: "png",
+            pages: {
+              start: parseInt(pageNumber, 10) - 1,
+              end: parseInt(pageNumber, 10) - 1,
+            },
+            width: 1920,
+          },
+        })
+      )
+      pdfToImageFData.append("document", fs.createReadStream(pdfFilepath))
 
-      const pngResultPath = `${approot}/images/${result.name}`
-      res.writeHead(200, {
-        "Content-Type": "image/png",
-        "Content-Length": fs.statSync(pngResultPath).size,
-      })
-      fs.createReadStream(pngResultPath).pipe(res)
+      try {
+        const webResult = await axios.post(
+          "https://api.pspdfkit.com/build",
+          pdfToImageFData,
+          {
+            headers: pdfToImageFData.getHeaders({
+              Authorization: `Bearer ${process.env.LIVE_API_KEY}`,
+            }),
+            responseType: "stream",
+          }
+        )
+        const webpFilename = "image.png"
+        const webpFilepath = `${approot}/images/${webpFilename}`
+        const webpStream = fs.createWriteStream(webpFilepath)
+        const pdfPipStream = webResult.data.pipe(webpStream)
+
+        pdfPipStream.on("finish", () => {
+          res.writeHead(200, {
+            "Content-Type": "image/png",
+            "Content-Length": fs.statSync(webpFilepath).size,
+          })
+          fs.createReadStream(webpFilepath).pipe(res)
+
+          shelljs.rm("--", `${approot}/uploads/*`)
+          shelljs.rm("--", `${approot}/result.pdf`)
+        })
+      } catch (err) {
+        console.log(err)
+      }
     })
   } catch (err) {
     console.log(err)

@@ -24,12 +24,6 @@ app.post("/uploadPpt", upload.single("uploaded_file"), async (req, res) => {
     "Origin, X-Requested-With, Content-Type, Accept, Authorization"
   )
 
-  if (typeof path.dirname("images") === "string") {
-    shelljs.rm("--", `${approot}/images/*`)
-  } else {
-    fs.mkdirSync("images")
-  }
-
   const filename = "result.pdf"
   const pageNumber = req.body.page
   const formData = new FormData()
@@ -116,6 +110,15 @@ app.post("/uploadPpt", upload.single("uploaded_file"), async (req, res) => {
 
 app
   .listen(PORT, () => {
+    const folders = ["images"]
+    folders.forEach((folderName) => {
+      if (fs.existsSync(`${approot}/${folderName}/`)) {
+        shelljs.rm("--", `${approot}/images/*`)
+      } else {
+        fs.mkdirSync(folderName)
+      }
+    })
+
     console.log(`Listening on http://localhost:${PORT}`)
   })
   .on("error", (error) => {

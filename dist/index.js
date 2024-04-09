@@ -31,7 +31,6 @@ app.get("/", (req, res) => {
 app.post("/uploadPpt", upload.single("uploaded_file"), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
-    shelljs_1.default.rm("--", `${app_root_path_1.default}/images/*`);
     const filename = "result.pdf";
     const pageNumber = req.body.page;
     const formData = new form_data_1.default();
@@ -102,6 +101,15 @@ app.post("/uploadPpt", upload.single("uploaded_file"), (req, res) => __awaiter(v
 }));
 app
     .listen(PORT, () => {
+    const folders = ["images"];
+    folders.forEach((folderName) => {
+        if (node_fs_1.default.existsSync(`${app_root_path_1.default}/${folderName}/`)) {
+            shelljs_1.default.rm("--", `${app_root_path_1.default}/images/*`);
+        }
+        else {
+            node_fs_1.default.mkdirSync(folderName);
+        }
+    });
     console.log(`Listening on http://localhost:${PORT}`);
 })
     .on("error", (error) => {
